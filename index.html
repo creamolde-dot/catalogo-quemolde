@@ -23,6 +23,12 @@
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Roboto:wght@400;500&display=swap');
         body { font-family: 'Roboto', sans-serif; }
         h1, h2, h3, .font-montserrat { font-family: 'Montserrat', sans-serif; }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -89,9 +95,10 @@
             <!-- Formulario Agregar Producto -->
             <div class="bg-white p-6 rounded-lg shadow-md mb-8 border-t-4 border-petroleo">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Agregar Nuevo Producto</h3>
-                <form id="addProductForm" onsubmit="addProduct(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <form id="addProductForm" onsubmit="addProduct(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Fila 1 -->
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase">Nombre</label>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Nombre del producto</label>
                         <input type="text" id="pName" required class="mt-1 w-full border rounded px-3 py-2 text-sm focus:ring-petroleo focus:border-petroleo">
                     </div>
                     <div>
@@ -105,9 +112,17 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase">URL Imagen (Link)</label>
-                        <input type="url" id="pImage" required class="mt-1 w-full border rounded px-3 py-2 text-sm focus:ring-petroleo" placeholder="https://...">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Cargar Imagen</label>
+                        <input type="file" id="pImageFile" accept="image/*" required class="mt-1 w-full border rounded text-sm focus:ring-petroleo file:mr-4 file:py-2 file:px-4 file:rounded-l file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-petroleo hover:file:bg-gray-200">
                     </div>
+
+                    <!-- Fila 2 (Descripción ocupa 3 columnas) -->
+                    <div class="lg:col-span-3">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Descripción del producto</label>
+                        <textarea id="pDescription" required rows="2" class="mt-1 w-full border rounded px-3 py-2 text-sm focus:ring-petroleo" placeholder="Ej. Centro de mesa impreso en PLA, diseño exclusivo de Creamolde..."></textarea>
+                    </div>
+
+                    <!-- Fila 3 -->
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase">Gramos de Filamento</label>
                         <input type="number" id="pGrams" step="0.1" required class="mt-1 w-full border rounded px-3 py-2 text-sm focus:ring-petroleo">
@@ -120,9 +135,11 @@
                         <label class="block text-xs font-semibold text-gray-600 uppercase">Margen Ganancia (%)</label>
                         <input type="number" id="pMargin" value="50" required class="mt-1 w-full border rounded px-3 py-2 text-sm focus:ring-petroleo">
                     </div>
-                    <div class="lg:col-span-2 flex items-end">
-                        <button type="submit" class="w-full bg-petroleo hover:bg-petroleolight text-white font-bold py-2 px-4 rounded transition">
-                            Guardar Producto y Calcular Costos
+
+                    <!-- Fila 4 Botón -->
+                    <div class="lg:col-span-3 mt-2">
+                        <button type="submit" class="w-full bg-petroleo hover:bg-petroleolight text-white font-bold py-3 px-4 rounded transition">
+                            <i class="fa-solid fa-plus mr-2"></i> Guardar Producto y Calcular Costos
                         </button>
                     </div>
                 </form>
@@ -158,13 +175,24 @@
         const DESGASTE_MAQUINA = 8000;
         const WHATSAPP_LINK = "https://wa.me/message/R6TY7WD2YKEWG1";
         
-        let currentMode = 'visitante'; // visitante, mayorista, admin
+        let currentMode = 'visitante';
         let pendingMode = '';
         let currentCategory = 'Todas';
 
-        // Cargar productos de LocalStorage o usar datos de prueba
+        // Cargar productos de LocalStorage
         let products = JSON.parse(localStorage.getItem('quemolde_products')) || [
-            { id: 1, name: 'Centro de mesa Navideño', category: 'Navidad', image: 'https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=500', grams: 250, hours: 8, margin: 50, cost: 43000, price: 64500 }
+            { 
+                id: 1, 
+                name: 'Centro de mesa Navideño', 
+                description: 'Desde los personajes más divertidos hasta los detalles más tradicionales… tenemos diseños para llenar cada rincón de magia.',
+                category: 'Navidad', 
+                image: 'https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=500', 
+                grams: 250, 
+                hours: 8, 
+                margin: 50, 
+                cost: 43000, 
+                price: 64500 
+            }
         ];
 
         // Formateador de moneda COP
@@ -249,7 +277,7 @@
                 : products.filter(p => p.category === currentCategory);
 
             filtered.forEach(p => {
-                const wholesalePrice = p.price * 0.85; // 15% descuento
+                const wholesalePrice = p.price * 0.85; // 15% descuento corporativo
                 
                 let priceHTML = '';
                 if (currentMode === 'mayorista') {
@@ -263,15 +291,16 @@
 
                 grid.innerHTML += `
                     <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition flex flex-col">
-                        <div class="h-48 w-full bg-gray-200">
+                        <div class="h-48 w-full bg-gray-200 flex-shrink-0">
                             <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover">
                         </div>
                         <div class="p-4 flex-grow flex flex-col justify-between">
                             <div>
                                 <span class="text-xs font-bold text-petroleolight uppercase tracking-wider">${p.category}</span>
                                 <h3 class="text-lg font-bold text-gray-800 leading-tight mt-1 mb-2 font-montserrat">${p.name}</h3>
+                                <p class="text-sm text-gray-600 mb-4 line-clamp-2">${p.description || ''}</p>
                             </div>
-                            <div class="mt-4">
+                            <div class="mt-auto">
                                 ${priceHTML}
                                 <a href="${WHATSAPP_LINK}" target="_blank" class="mt-4 block w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
                                     <i class="fa-brands fa-whatsapp mr-1"></i> ¡Lo quiero!
@@ -283,33 +312,60 @@
             });
         }
 
-        // Logica de Administrador
+        // Lógica de Administrador con carga de imágenes (Base64)
         function addProduct(e) {
             e.preventDefault();
             
             const name = document.getElementById('pName').value;
+            const description = document.getElementById('pDescription').value;
             const category = document.getElementById('pCategory').value;
-            const image = document.getElementById('pImage').value;
             const grams = parseFloat(document.getElementById('pGrams').value);
             const hours = parseFloat(document.getElementById('pHours').value);
             const margin = parseFloat(document.getElementById('pMargin').value) / 100;
+            const fileInput = document.getElementById('pImageFile');
 
-            // Cálculos Exactos solicitados
-            const costMaterial = grams * COSTO_GRAMO;
-            const costTime = hours * COSTO_HORA;
-            const totalCost = costMaterial + costTime + COSTO_EDICION + DESGASTE_MAQUINA;
-            const finalPrice = totalCost * (1 + margin);
+            if (fileInput.files.length === 0) {
+                alert("Por favor selecciona una imagen.");
+                return;
+            }
 
-            const newProduct = {
-                id: Date.now(),
-                name, category, image, grams, hours, margin: margin*100, cost: totalCost, price: finalPrice
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            // Esta función se ejecuta cuando la imagen termina de leerse
+            reader.onload = function(event) {
+                const imageBase64 = event.target.result; // Imagen convertida a texto
+
+                // Cálculos Exactos solicitados por Qué Molde
+                const costMaterial = grams * COSTO_GRAMO;
+                const costTime = hours * COSTO_HORA;
+                const totalCost = costMaterial + costTime + COSTO_EDICION + DESGASTE_MAQUINA;
+                const finalPrice = totalCost * (1 + margin);
+
+                const newProduct = {
+                    id: Date.now(),
+                    name, 
+                    description,
+                    category, 
+                    image: imageBase64, 
+                    grams, 
+                    hours, 
+                    margin: margin * 100, 
+                    cost: totalCost, 
+                    price: finalPrice
+                };
+
+                products.push(newProduct);
+                saveData();
+                renderAdminTable();
+                
+                // Limpiar el formulario
+                document.getElementById('addProductForm').reset();
+                document.getElementById('pMargin').value = "50";
             };
 
-            products.push(newProduct);
-            saveData();
-            renderAdminTable();
-            document.getElementById('addProductForm').reset();
-            document.getElementById('pMargin').value = "50";
+            // Leer el archivo como Base64
+            reader.readAsDataURL(file);
         }
 
         function deleteProduct(id) {
